@@ -38,6 +38,7 @@ class KFDrawer extends StatefulWidget {
     this.scrollable,
     this.menuPadding,
     this.disableContentTap,
+    this.draggingWidth
   }) : super(key: key);
 
   Widget header;
@@ -53,6 +54,7 @@ class KFDrawer extends StatefulWidget {
   bool scrollable;
   EdgeInsets menuPadding;
   bool disableContentTap;
+  double draggingWidth;
 
   @override
   _KFDrawerState createState() => _KFDrawerState();
@@ -69,6 +71,8 @@ class _KFDrawerState extends State<KFDrawer> with TickerProviderStateMixin {
   double _shadowOffset = 16.0;
   bool _scrollable = false;
   bool _disableContentTap = true;
+  double _draggingWidth = 8.0;
+  double _startDragX = 0.0;
 
   Animation<double> animation, scaleAnimation;
   Animation<BorderRadius> radiusAnimation;
@@ -107,6 +111,7 @@ class _KFDrawerState extends State<KFDrawer> with TickerProviderStateMixin {
       setState(() {
         _menuOpened = opened;
       });
+      _startDragX = 0.0;
     }
   }
 
@@ -150,6 +155,10 @@ class _KFDrawerState extends State<KFDrawer> with TickerProviderStateMixin {
     if (widget.disableContentTap != null) {
       _disableContentTap = widget.disableContentTap;
     }
+    if (widget.draggingWidth != null) {
+      _draggingWidth = widget.draggingWidth;
+    }
+
     animationController = AnimationController(duration: const Duration(milliseconds: 300), vsync: this);
     animation = Tween<double>(begin: 0.0, end: 1.0).animate(animationController)
       ..addListener(() {
@@ -172,28 +181,31 @@ class _KFDrawerState extends State<KFDrawer> with TickerProviderStateMixin {
     return Listener(
       onPointerDown: (PointerDownEvent event) {
         if (_disableContentTap) {
-          if (_menuOpened && event.position.dx / MediaQuery
-              .of(context)
-              .size
-              .width >= _drawerWidth) {
+          if (_menuOpened &&
+              event.position.dx / MediaQuery.of(context).size.width >=
+                  _drawerWidth) {
             _close();
           } else {
             setState(() {
-              _isDraggingMenu = (!_menuOpened && event.position.dx <= 8.0);
+              _isDraggingMenu =
+                  (!_menuOpened && event.position.dx <= _draggingWidth);
             });
           }
         } else {
           setState(() {
-            _isDraggingMenu = (_menuOpened && event.position.dx / MediaQuery
-                .of(context)
-                .size
-                .width >= _drawerWidth) || (!_menuOpened && event.position.dx <= 8.0);
+            _isDraggingMenu = (_menuOpened &&
+                    event.position.dx / MediaQuery.of(context).size.width >=
+                        _drawerWidth) ||
+                (!_menuOpened && event.position.dx <= _draggingWidth);
           });
+        }
+        if (_isDraggingMenu) {
+          _startDragX = event.position.dx;
         }
       },
       onPointerMove: (PointerMoveEvent event) {
         if (_isDraggingMenu) {
-          animationController.value = event.position.dx / MediaQuery
+          animationController.value = (event.position.dx - _startDragX) / MediaQuery
               .of(context)
               .size
               .width;
